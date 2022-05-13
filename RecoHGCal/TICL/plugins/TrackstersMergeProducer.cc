@@ -1,6 +1,4 @@
 #include <memory>  // unique_ptr
-#include <ostream>
-
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
@@ -50,12 +48,6 @@
 #include "Geometry/HGCalCommonData/interface/HGCalDDDConstants.h"
 #include "Geometry/Records/interface/IdealGeometryRecord.h"
 #include "Geometry/CommonDetUnit/interface/GeomDet.h"
-
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "CommonTools/UtilAlgos/interface/TFileService.h"
-
-#include "TTree.h"
-#include "TH2D.h"
 
 #include "TrackstersPCA.h"
 #include "SeedingRegionByTracks.h"
@@ -155,9 +147,6 @@ private:
   static constexpr int eidNFeatures_ = 3;
 
   edm::ESGetToken<HGCalDDDConstants, IdealGeometryRecord> hdc_token_;
-
-  TTree *tree_;
-  TH1F *h_allLCEnergy;
 };
 
 TrackstersMergeProducer::TrackstersMergeProducer(const edm::ParameterSet &ps)
@@ -195,7 +184,7 @@ TrackstersMergeProducer::TrackstersMergeProducer(const edm::ParameterSet &ps)
       track_min_eta_(ps.getParameter<double>("track_min_eta")),
       track_max_eta_(ps.getParameter<double>("track_max_eta")),
       track_max_missing_outerhits_(ps.getParameter<int>("track_max_missing_outerhits")),
-      trackTimeQualThreshold_(ps.getParameter<double>("timingQualityThreshold")),
+      trackTimeQualThreshold_(ps.getParameter<double>("timing_quality_threshold")),
       cosangle_align_(ps.getParameter<double>("cosangle_align")),
       e_over_h_threshold_(ps.getParameter<double>("e_over_h_threshold")),
       pt_neutral_threshold_(ps.getParameter<double>("pt_neutral_threshold")),
@@ -312,17 +301,11 @@ void TrackstersMergeProducer::produce(edm::Event &evt, const edm::EventSetup &es
 
   edm::Handle<std::vector<Trackster>> tracksterstrkem_h;
   evt.getByToken(tracksterstrkem_token_, tracksterstrkem_h);
-
-  std::vector<Trackster> trackstersTRKEM;
-  if (tracksterstrkem_h.isValid())
-    trackstersTRKEM = *tracksterstrkem_h;
+  const auto &trackstersTRKEM = *tracksterstrkem_h;
 
   edm::Handle<std::vector<Trackster>> tracksterstrk_h;
   evt.getByToken(tracksterstrk_token_, tracksterstrk_h);
-
-  std::vector<Trackster> trackstersTRK;
-  if (tracksterstrk_h.isValid())
-    trackstersTRK = *tracksterstrk_h;
+  const auto &trackstersTRK = *tracksterstrk_h;
 
   edm::Handle<std::vector<Trackster>> trackstershad_h;
   evt.getByToken(trackstershad_token_, trackstershad_h);
@@ -330,10 +313,7 @@ void TrackstersMergeProducer::produce(edm::Event &evt, const edm::EventSetup &es
 
   edm::Handle<std::vector<TICLSeedingRegion>> seedingTrk_h;
   evt.getByToken(seedingTrk_token_, seedingTrk_h);
-
-  std::vector<TICLSeedingRegion> seedingTrk;
-  if (seedingTrk_h.isValid())
-    seedingTrk = *seedingTrk_h;
+  const auto &seedingTrk = *seedingTrk_h;
   usedSeeds.resize(tracks.size(), false);
 
   if (ticlv4_) {
@@ -355,17 +335,17 @@ void TrackstersMergeProducer::produce(edm::Event &evt, const edm::EventSetup &es
     edm::Handle<edm::ValueMap<float>> trackTimeQual_h;
     evt.getByToken(tracks_time_quality_token_, trackTimeQual_h);
     const auto &trackTimeQual = *trackTimeQual_h;
+    
     // Linking
-    auto resultTrackstersLinked = std::make_unique<std::vector<TICLCandidate>>();
-    linkingAlgo_->linkTracksters(track_h, trackTime, trackTimeErr, trackTimeQual, trackTimeQualThreshold_, muons, cutTk_, trackstersclue3d_h, *resultTrackstersLinked);
+    linkingAlgo_->linkTracksters(track_h, trackTime, trackTimeErr, trackTimeQual, trackTimeQualThreshold_, muons, cutTk_, trackstersclue3d_h, *resultCandidates);
 
     // Print debug info
     if (debug_) {
       std::cout << "No. of Tracks : " << tracks.size() << std::endl;
       std::cout << "No. of Tracksters : " << (*trackstersclue3d_h).size() << std::endl;
     }
-    std::vector<TICLCandidate> &tracksterLinkingDebug = *resultTrackstersLinked;
-    for (auto cand : tracksterLinkingDebug) {
+    std::vector<TICLCandidate> &candidates = *resultCandidates;
+    for (auto cand : candidates) {
       auto track_ptr = cand.trackPtr();
       auto trackster_ptrs = cand.tracksters();
       if (debug_) {
@@ -374,13 +354,14 @@ void TrackstersMergeProducer::produce(edm::Event &evt, const edm::EventSetup &es
         std::cout << "track id (p) : " << track_idx << " (" << (track_ptr.isNull() ? -1 : track_ptr->p()) << ") "
                   << " trackster ids (E) : ";
       }
-      // merge included tracksters
+      
+      // Merge included tracksters
       ticl::Trackster outTrackster;
       auto updated_size = 0;
       for (auto ts_ptr : trackster_ptrs) {
         if (debug_) {
           auto ts_idx = ts_ptr.get() - (edm::Ptr<ticl::Trackster>(trackstersclue3d_h, 0)).get();
-          std::cout << ts_idx << " (" << ts_ptr->raw_energy() << ")";
+          std::cout << ts_idx << " (" << ts_ptr->raw_energy() << ") ";
         }
         auto &thisTrackster = *ts_ptr;
         updated_size += thisTrackster.vertices().size();
@@ -432,6 +413,7 @@ void TrackstersMergeProducer::produce(edm::Event &evt, const edm::EventSetup &es
       if(!outTrackster.vertices().empty())
         resultTrackstersMerged->push_back(outTrackster);
     }
+
     assignPCAtoTracksters(*resultTrackstersMerged,
                           layerClusters,
                           layerClustersTimes,
@@ -441,8 +423,9 @@ void TrackstersMergeProducer::produce(edm::Event &evt, const edm::EventSetup &es
     assignTimeToCandidates(*resultCandidates);
 
     evt.put(std::move(resultTrackstersMerged));
-    evt.put(std::move(resultTrackstersLinked));
-  }
+    evt.put(std::move(resultCandidates));
+  
+  } // ticlv4
 
   else {
     auto totalNumberOfTracksters =
@@ -996,7 +979,7 @@ void TrackstersMergeProducer::fillDescriptions(edm::ConfigurationDescriptions &d
   desc.add<double>("track_min_eta", 1.48);
   desc.add<double>("track_max_eta", 3.);
   desc.add<int>("track_max_missing_outerhits", 5);
-  desc.add<double>("timingQualityThreshold", 0.5);
+  desc.add<double>("timing_quality_threshold", 0.5);
   desc.add<double>("cosangle_align", 0.9945);
   desc.add<double>("e_over_h_threshold", 1.);
   desc.add<double>("pt_neutral_threshold", 2.);
@@ -1015,5 +998,4 @@ void TrackstersMergeProducer::fillDescriptions(edm::ConfigurationDescriptions &d
   descriptions.add("trackstersMergeProducer", desc);
 }
 
-#include "FWCore/Framework/interface/MakerMacros.h"
 DEFINE_FWK_MODULE(TrackstersMergeProducer);
