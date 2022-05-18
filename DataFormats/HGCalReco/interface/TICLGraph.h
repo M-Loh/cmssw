@@ -7,16 +7,20 @@
 class Node {
     public:
     Node() = default;
-    Node(unsigned index, bool isTrackster) : index(index), isTrackster(isTrackster) {};
-    void addLinked(Node &node) {
-        linkedNodes.push_back(node);
+    Node(unsigned index, bool isTrackster = true) : index(index), isTrackster(isTrackster) {};
+    void addInner(Node &node) {
+        innerNodes.push_back(node);
+    }
+    void addOuter(Node &node) {
+        outerNodes.push_back(node);
     }
     ~Node() = default;
 
     private:
     unsigned index;
     bool isTrackster;
-    std::vector<Node> linkedNodes;
+    std::vector<Node> innerNodes;
+    std::vector<Node> outerNodes;
 
 };
 

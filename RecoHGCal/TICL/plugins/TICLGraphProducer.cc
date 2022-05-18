@@ -10,6 +10,7 @@
 
 #include "DataFormats/HGCalReco/interface/TICLGraph.h"
 #include "DataFormats/HGCalReco/interface/Trackster.h"
+#include "DataFormats/HGCalReco/interface/TICLLayerTile.h"
 
 #include "DataFormats/TrackReco/interface/Track.h"
 
@@ -93,7 +94,90 @@ void TICLGraphProducer::beginRun(edm::Run const &iEvent, edm::EventSetup const &
 };
 
 void TICLGraphProducer::produce(edm::Event &evt, const edm::EventSetup &es) {
-    auto resultGraph = std::make_unique<TICLGraph>();
+    
+
+    edm::Handle<std::vector<Trackster>> trackstersclue3d_h;
+    evt.getByToken(tracksters_clue3d_token_, trackstersclue3d_h);
+    auto trackstersclue3d = *trackstersclue3d_h;
+
+    //std::vector<Trackster> trackstersclue3d_sorted(trackstersclue3d);
+    //std::sort(trackstersclue3d_sorted.begin(), trackstersclue3d_sorted.end(), [](Trackster& t1, Trackster& t2){return t1.barycenter().z() < t2.barycenter().z();});
+
+    TICLLayerTile tracksterTilePos;
+    TICLLayerTile tracksterTileNeg;
+
+    for(size_t id_t = 0; id_t < trackstersclue3d.size(); ++id_t){
+      auto t = trackstersclue3d[id_t];
+      if(t.barycenter().eta() > 0.){
+        tracksterTilePos.fill(t.barycenter().eta(), t.barycenter().phi(), id_t);
+      }
+      else if(t.barycenter().eta() < 0.){
+        tracksterTileNeg.fill(t.barycenter().eta(), t.barycenter().phi(), id_t);
+      }
+    }
+
+    std::vector<Node> allNodes;
+
+    for(size_t id_t = 0; id_t < trackstersclue3d.size(); ++id_t){
+      auto t = trackstersclue3d[id_t];
+
+      Node tNode(id_t);
+
+      auto bary = t.barycenter();
+      double del = 0.1;
+
+      double eta_min = std::max(abs(bary.eta()) - del, (double) TileConstants::minEta);
+      double eta_max = std::min(abs(bary.eta()) + del, (double) TileConstants::maxEta);
+  
+      if(bary.eta() > 0.){
+        std::array<int, 4> search_box = tracksterTilePos.searchBoxEtaPhi(eta_min, eta_max, bary.phi() - del, bary.phi() + del);
+        if (search_box[2] > search_box[3]){
+          search_box[3] += TileConstants::nPhiBins;
+        }
+        
+        for (int eta_i = search_box[0]; eta_i <= search_box[1]; ++eta_i) {
+          for (int phi_i = search_box[2]; phi_i <= search_box[3]; ++phi_i){
+            auto &neighbours = tracksterTilePos[tracksterTilePos.globalBin(eta_i, (phi_i%TileConstants::nPhiBins))];
+            for (auto n: neighbours){
+              Node nNode(n);
+
+              if(trackstersclue3d[n].barycenter().z() < bary.z()){
+                tNode.addInner(nNode);
+              }
+              else if (trackstersclue3d[n].barycenter().z() > bary.z()){
+                tNode.addOuter(nNode);
+              }
+             }
+          }
+        }
+      }
+
+      else if(bary.eta() < 0.){
+        std::array<int, 4> search_box = tracksterTileNeg.searchBoxEtaPhi(eta_min, eta_max, bary.phi() - del, bary.phi() + del);
+        if (search_box[2] > search_box[3]){
+          search_box[3] += TileConstants::nPhiBins;
+        }
+        
+        for (int eta_i = search_box[0]; eta_i <= search_box[1]; ++eta_i) {
+          for (int phi_i = search_box[2]; phi_i <= search_box[3]; ++phi_i){
+            auto &neighbours = tracksterTileNeg[tracksterTileNeg.globalBin(eta_i, (phi_i%TileConstants::nPhiBins))];
+            for (auto n: neighbours){
+              Node nNode(n);
+              
+              if(abs(trackstersclue3d[n].barycenter().z()) < abs(bary.z())){
+                tNode.addInner(nNode);
+              }
+              else if (abs(trackstersclue3d[n].barycenter().z()) > abs(bary.z())){
+                tNode.addOuter(nNode);
+              }
+             }
+          }
+        }
+      }
+      allNodes.push_back(tNode);
+
+    }
+    auto resultGraph = std::make_unique<TICLGraph>(allNodes);
 
     evt.put(std::move(resultGraph));
 }
