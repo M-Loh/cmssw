@@ -139,13 +139,12 @@ void TICLGraphProducer::produce(edm::Event &evt, const edm::EventSetup &es) {
           for (int phi_i = search_box[2]; phi_i <= search_box[3]; ++phi_i){
             auto &neighbours = tracksterTilePos[tracksterTilePos.globalBin(eta_i, (phi_i%TileConstants::nPhiBins))];
             for (auto n: neighbours){
-              Node nNode(n);
 
               if(trackstersclue3d[n].barycenter().z() < bary.z()){
-                tNode.addInner(nNode);
+                tNode.addInner(n);
               }
               else if (trackstersclue3d[n].barycenter().z() > bary.z()){
-                tNode.addOuter(nNode);
+                tNode.addOuter(n);
               }
              }
           }
@@ -162,13 +161,12 @@ void TICLGraphProducer::produce(edm::Event &evt, const edm::EventSetup &es) {
           for (int phi_i = search_box[2]; phi_i <= search_box[3]; ++phi_i){
             auto &neighbours = tracksterTileNeg[tracksterTileNeg.globalBin(eta_i, (phi_i%TileConstants::nPhiBins))];
             for (auto n: neighbours){
-              Node nNode(n);
               
               if(abs(trackstersclue3d[n].barycenter().z()) < abs(bary.z())){
-                tNode.addInner(nNode);
+                tNode.addInner(n);
               }
               else if (abs(trackstersclue3d[n].barycenter().z()) > abs(bary.z())){
-                tNode.addOuter(nNode);
+                tNode.addOuter(n);
               }
              }
           }

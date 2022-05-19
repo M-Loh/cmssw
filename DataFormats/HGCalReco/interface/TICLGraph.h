@@ -8,19 +8,19 @@ class Node {
     public:
     Node() = default;
     Node(unsigned index, bool isTrackster = true) : index(index), isTrackster(isTrackster) {};
-    void addInner(Node &node) {
-        innerNodes.push_back(node);
+    void addInner(unsigned int trackster_id) {
+        innerNodes.push_back(trackster_id);
     }
-    void addOuter(Node &node) {
-        outerNodes.push_back(node);
+    void addOuter(unsigned int trackster_id) {
+        outerNodes.push_back(trackster_id);
     }
     ~Node() = default;
 
     private:
     unsigned index;
     bool isTrackster;
-    std::vector<Node> innerNodes;
-    std::vector<Node> outerNodes;
+    std::vector<unsigned int> innerNodes;
+    std::vector<unsigned int> outerNodes;
 
 };
 
