@@ -1,38 +1,20 @@
-// -*- C++ -*-
-//
-// Package:    link/LinkingAlgoByFastJet
-// Class:      LinkingAlgoByFastJet
-//
-/**\class LinkingAlgoByFastJet LinkingAlgoByFastJet.cc RecoHGCal/TICL/plugins/LinkingAlgoByFastJet.cc
 
- Description: [one line class summary]
 
- Implementation:
-     [Notes on implementation]
-*/
-//
-// Original Author:  Maximilian Leon Lohmann
-//         Created:  Mon, 08 Aug 2022 07:30:37 GMT
-//
-//
+#include <cmath>
+#include <string>
 
-// system include files
-#include <memory>
-
-#include <memory>
-#include <array>
-#include "RecoHGCal/TICL/plugins/LinkingAlgoBase.h"
 #include "RecoHGCal/TICL/plugins/LinkingAlgoByFastJet.h"
 
-// user include files
-#include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/ESHandle.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
-
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/Utilities/interface/StreamID.h"
+//#include "FWCore/Utilities/interface/StreamID.h"
 
 #include "fastjet/ClusterSequence.hh"
+
+
+#include "DataFormats/HGCalReco/interface/Common.h"
+
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
+
+
 
 using namespace fastjet;
 using namespace ticl;
@@ -42,10 +24,10 @@ using namespace ticl;
 //
 LinkingAlgoByFastJet::LinkingAlgoByFastJet(const edm::ParameterSet& conf)
   : LinkingAlgoBase(conf),
-    filter_on_categories_(conf.getParameter<std::vector<int>>("filter_hadronic_on_categories")),
+    antikt_radius_(conf.getParameter<double>("antikt_radius")),
     pid_threshold_(conf.getParameter<double>("pid_threshold")),
     energy_em_over_total_threshold_(conf.getParameter<double>("energy_em_over_total_threshold")),
-    antikt_radius_(conf.getParameter<double>("antikt_radius")) {};
+    filter_on_categories_(conf.getParameter<std::vector<int>>("filter_hadronic_on_categories")) {}
 
 
 LinkingAlgoByFastJet::~LinkingAlgoByFastJet() {

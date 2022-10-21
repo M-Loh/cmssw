@@ -1,13 +1,24 @@
 
 
+#include <memory>
+#include <array>
+#include "RecoHGCal/TICL/plugins/LinkingAlgoBase.h"
 
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+
+#include "DataFormats/Math/interface/Vector3D.h"
+//#include "DataFormats/GeometrySurface/interface/BoundDisk.h"
+#include "DataFormats/HGCalReco/interface/TICLLayerTile.h"
 //
 // class declaration
 //
 namespace ticl{
   class LinkingAlgoByFastJet final : public LinkingAlgoBase {
   public:
-    explicit LinkingAlgoByFastJet(const edm::ParameterSet&);
+    LinkingAlgoByFastJet(const edm::ParameterSet&);
     ~LinkingAlgoByFastJet() override;
 
     void linkTracksters(const edm::Handle<std::vector<reco::Track>>,
