@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <string>
-
 #include "RecoHGCal/TICL/plugins/LinkingAlgoByFastJet.h"
 
 //#include "FWCore/Utilities/interface/StreamID.h"
@@ -37,6 +36,18 @@ LinkingAlgoByFastJet::~LinkingAlgoByFastJet() {
 //
 // member functions 
 //
+
+void LinkingAlgoByFastJet::initialize(const HGCalDDDConstants *hgcons,
+                                                 const hgcal::RecHitTools rhtools,
+                                                 const edm::ESHandle<MagneticField> bfieldH,
+                                                 const edm::ESHandle<Propagator> propH) {
+  hgcons_ = hgcons;
+  rhtools_ = rhtools;
+  //buildLayers();
+
+  bfield_ = bfieldH;
+  propagator_ = propH;
+}
 
 void LinkingAlgoByFastJet::linkTracksters(const edm::Handle<std::vector<reco::Track>> tkH,
                                           const edm::ValueMap<float> &tkTime,
@@ -152,13 +163,12 @@ void LinkingAlgoByFastJet::linkTracksters(const edm::Handle<std::vector<reco::Tr
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void LinkingAlgoByFastJet::fillPSetDescription(edm::ParameterSetDescription& desc) {
+  desc.add<double>("antikt_radius", 0.09)->setComment("Radius to be used while running the Anti-kt clustering");
   desc.add<double>("pid_threshold", 0.5);
   desc.add<double>("energy_em_over_total_threshold", 0.9);
-  desc.add<double>("antikt_radius", 0.09)->setComment("Radius to be used while running the Anti-kt clustering");
   desc.add<std::vector<int>>("filter_hadronic_on_categories", {0, 1});
 
   LinkingAlgoBase::fillPSetDescription(desc);
 }
 
-//define this as a plug-in
-DEFINE_FWK_MODULE(LinkingAlgoByFastJet);
+

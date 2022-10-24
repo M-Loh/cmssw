@@ -34,6 +34,7 @@
 #include "RecoHGCal/TICL/plugins/LinkingAlgoBase.h"
 #include "RecoHGCal/TICL/plugins/LinkingAlgoFactory.h"
 #include "RecoHGCal/TICL/plugins/LinkingAlgoByDirectionGeometric.h"
+#include "RecoHGCal/TICL/plugins/LinkingAlgoByFastJet.h"
 
 #include "RecoLocalCalo/HGCalRecAlgos/interface/RecHitTools.h"
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
