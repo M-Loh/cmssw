@@ -74,10 +74,12 @@ void LinkingAlgoByFastJet::linkTracksters(const edm::Handle<std::vector<reco::Tr
 
   std::vector<fastjet::PseudoJet> fjInputs_ts;
 
-  for (auto ts : tracksters){
+  for (long unsigned int i = 0; i < tracksters.size(); ++i){
+    auto ts = tracksters[i]; 
     auto direction = ts.barycenter().Unit();
     direction *= ts.raw_energy();
     auto fpj = fastjet::PseudoJet(direction.X(), direction.Y(), direction.Z(), ts.raw_energy());
+    fpj.set_user_index(i);
     fjInputs_ts.push_back(fpj);
   }
 
@@ -117,6 +119,7 @@ void LinkingAlgoByFastJet::linkTracksters(const edm::Handle<std::vector<reco::Tr
     else if (jts.constituents().size() > 1){
       for (const auto &component : jts.constituents()){
         neutralCandidate.addTrackster(edm::Ptr<Trackster>(tsH, component.user_index()));
+        neutralCandidates.push_back(neutralCandidate);
       }
     }
   }
