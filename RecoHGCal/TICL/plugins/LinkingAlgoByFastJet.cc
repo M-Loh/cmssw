@@ -60,7 +60,7 @@ void LinkingAlgoByFastJet::linkTracksters(const edm::Handle<std::vector<reco::Tr
   constexpr double mpion = 0.13957;
   constexpr float mpion2 = mpion * mpion;
 
-  // const auto &tracks = *tkH;
+  const auto &tracks = *tkH;
   const auto &tracksters = *tsH;
 
   auto isHadron = [&](const Trackster &t) -> bool {
@@ -83,22 +83,20 @@ void LinkingAlgoByFastJet::linkTracksters(const edm::Handle<std::vector<reco::Tr
     fjInputs_ts.push_back(fpj);
   }
 
-  fastjet::ClusterSequence sequence(fjInputs_ts, JetDefinition(antikt_algorithm, antikt_radius_));
-  auto jets_ts = fastjet::sorted_by_pt(sequence.inclusive_jets(0));
+  fastjet::ClusterSequence sequence_ts(fjInputs_ts, JetDefinition(antikt_algorithm, antikt_radius_));
+  auto jets_ts = fastjet::sorted_by_pt(sequence_ts.inclusive_jets(0));
 
 
 
-  // std::vector<fastjet::PseudoJet> fjInputs_tk;
+  std::vector<fastjet::PseudoJet> fjInputs_tk;
 
-  // for (auto tk : tracks){
-  //   auto direction = tk.barycenter().Unit();
-  //   direction *= tk.raw_energy();
-  //   auto fpj = fastjet::PseudoJet(direction.X(), direction.Y(), direction.Z(), tk.raw_energy());
-  //   fjInputs_tk.push_back(fpj);
-  // }
+  for (auto tk : tracks){
+    auto fpj = fastjet::PseudoJet(tk.px(), tk.py(), tk.pz(), tk.p());
+    fjInputs_tk.push_back(fpj);
+  }
   
-  // fastjet::ClusterSequence sequence(fjInputs_tk, JetDefinition(antikt_algorithm, antikt_radius_));
-  // auto jets_tk = fastjet::sorted_by_pt(sequence.inclusive_jets(0));
+  fastjet::ClusterSequence sequence_tk(fjInputs_tk, JetDefinition(antikt_algorithm, antikt_radius_));
+  auto jets_tk = fastjet::sorted_by_pt(sequence_tk.inclusive_jets(0));
 
 
   //create neutral candidates for all jets of tracksters
@@ -119,8 +117,8 @@ void LinkingAlgoByFastJet::linkTracksters(const edm::Handle<std::vector<reco::Tr
     else if (jts.constituents().size() > 1){
       for (const auto &component : jts.constituents()){
         neutralCandidate.addTrackster(edm::Ptr<Trackster>(tsH, component.user_index()));
-        neutralCandidates.push_back(neutralCandidate);
       }
+      neutralCandidates.push_back(neutralCandidate);
     }
   }
 
@@ -159,6 +157,8 @@ void LinkingAlgoByFastJet::linkTracksters(const edm::Handle<std::vector<reco::Tr
     }
   }
 
+  std::cout << "n candidates: " << neutralCandidates.size() << std::endl;
+
   resultLinked.insert(std::end(resultLinked), std::begin(neutralCandidates), std::end(neutralCandidates));
 
 }
@@ -166,7 +166,7 @@ void LinkingAlgoByFastJet::linkTracksters(const edm::Handle<std::vector<reco::Tr
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void LinkingAlgoByFastJet::fillPSetDescription(edm::ParameterSetDescription& desc) {
-  desc.add<double>("antikt_radius", 0.09)->setComment("Radius to be used while running the Anti-kt clustering");
+  desc.add<double>("antikt_radius", 0.15)->setComment("Radius to be used while running the Anti-kt clustering");
   desc.add<double>("pid_threshold", 0.5);
   desc.add<double>("energy_em_over_total_threshold", 0.9);
   desc.add<std::vector<int>>("filter_hadronic_on_categories", {0, 1});
